@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>test</title>
+    <style>
+        .status {
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .input {
+            width: 100%;
+            box-sizing: border-box;
+            line-height: 25px;
+            margin: 5px 0;
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Web Side:</h1>
+    <p class="status">[Loading] Waiting for bridge ready</p>
+    <input class="input" type="text" placeholder="Some..." value="Test Message" />
+    <button class="callNative" label="Call RN Function">Call RN Function</button>
+    <button class="sendToNative" label="Send Message To RN">Send Message To RN</button>
+
+    <script src="https://cdn.bootcss.com/es6-promise/4.0.5/es6-promise.auto.min.js"></script>
+    <script src="https://tb1.bdstatic.com/tb/libs/rnwi-browser.js"></script>
+    <script>
+        (function () {
+            var $input = document.querySelector('.input')
+            var $status = document.querySelector('.status')
+
+            var rnTestNativeFunction = window.WebViewInvoke.bind('getPersonInfo')
+            var sendMessageToRN = window.WebViewInvoke.bind('messageWeb2RN');
+
+            document.querySelector('.callNative').addEventListener('click', function () {
+                rnTestNativeFunction($input.value)
+                    .then(function (data) {
+                        $status.innerText = `[Call Natinve] Success with result:${data}`;
+                    })
+            })
+
+            document.querySelector('.sendToNative').addEventListener('click', function () {
+                sendMessageToRN($input.value)
+                    .then(function () {
+                        $status.innerText = `Send Message To RN:${$input.value}`;
+                    })
+            })
+
+            testWebFunction = (data) => {
+                $status.innerText = `testWebFunction called by RN with data:${data}`;
+                return 'testWebFunction called success';
+            }
+            window.WebViewInvoke.define('testWebFunction', testWebFunction)
+
+        })()
+    </script>
+</body>
+
+</html>
