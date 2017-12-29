@@ -6,7 +6,7 @@ const success = require('./success.png');
 const batteryIcon = require('./batteryIcon.png');
 const Close = require('./close.png');
 const errorLogin = require('./errorLogin.png');
-const pikachuLoading = require('./loading.png');
+const Loading = require('./loading.png');
 const payFail = require('./payfail.png');
 const goBackImage = require('./back.png');
 const searchBoxClean = require('./search_box_clean.png');
@@ -18,7 +18,7 @@ export {
   batteryIcon,
   Close,
   errorLogin,
-  pikachuLoading,
+  Loading,
   payFail,
   goBackImage,
   searchBoxClean,
