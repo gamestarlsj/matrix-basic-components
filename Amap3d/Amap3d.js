@@ -11,29 +11,35 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  TouchableWithoutFeedback
 } from 'react-native';
 import Amap3dInterface from './Amap3d.interface';
 import { Mask } from 'matrix-basic-components';
 import React, { Component } from 'react';
+import styles from './Amap3d.styles'
 
 const { width, height } = Dimensions.get('window');
 
 type Amap3dProps = {
-  // 自定义车辆图标，数据，样式
+  // 自定义车辆图标，数据，样式，点击回调
   bikeMarkerImg? : string,
   bikeMarkerStyle? : StyleSheetType,
   bikeMarkerData? : Array,
-  // 自定义停车区图标，数据，样式
+  bikeMarkerOnPress?: Function,
+  // 自定义停车区图标，数据，样式，点击回调
   parkMarkerImg? : string,
   parkMarkerStyle? : StyleSheetType,
   parkMarkerData? : Array,
+  parkMarkerOnPress?: Function,
   // 停车区域数据，样式
   parkAreaData? : Array,
   parkAreaStyle? : object,
   // 初始化位置
   myPosition: object,
-  // 定位按钮回调
-  restartLocation: Function,
+  // 是否展示中心点
+  ifShowCenter?: Boolean,
+  // 点击地图事件
+  mapOnPress?: Function,
 };
 
 export default class Amap3d extends React.Component<Amap3dProps> {
@@ -43,21 +49,30 @@ export default class Amap3d extends React.Component<Amap3dProps> {
       bikeMarkerData: this.props.bikeMarkerData ? this.props.bikeMarkerData : [],
       parkMarkerData: this.props.parkMarkerData ? this.props.parkMarkerData : [],
       parkAreaData: this.props.parkAreaData ? this.props.parkAreaData : [],
-      centerPosition: this.props.myPosition,
+      ifShowCenter: this.props.ifShowCenter ? this.props.ifShowCenter : true,
+      myPosition: this.props.myPosition,
     };
     this.myPosition = this.props.myPosition;
-    this.Amap3dInterface = {};
+    this.centerPosition = this.props.myPosition;
   }
 
   _log(actionName, nativeEvent) {
     console.log(`${actionName}: ${nativeEvent}`);
   }
 
-  _logPressEvent = ({nativeEvent}) => this._log('onPress', nativeEvent)
+  _logPressEvent = ({nativeEvent}) => this.mapOnPress('onPress', nativeEvent)
   _logLongPressEvent = ({nativeEvent}) => this._log('onLongPress', nativeEvent)
   _logLocationEvent = ({nativeEvent}) => this.updateLocation(nativeEvent)
-  // _logStatusChangeEvent = ({nativeEvent}) =>
-  // this.StatusChangeEvent(nativeEvent);
+
+  _logStatusChangeCompleteEvent = ({nativeEvent}) => {
+    const { longitude, latitude } = nativeEvent;
+    if(this.state.ifShowCenter){
+      this.centerPosition = {
+        latitude: latitude,
+        longitude: longitude
+      }
+    }
+  }
 
   //渲染自行车图标
   renderBikeMaker() {
@@ -65,10 +80,14 @@ export default class Amap3d extends React.Component<Amap3dProps> {
       return (
         <Marker
           key={index}
+          infoWindowEnabled={false}
+          onPress={()=>{
+            this.props.bikeMarkerOnPress && this.props.bikeMarkerOnPress(position, index)
+          }}
           icon={() => (
             <Image
               source={this.props.bikeMarkerImg || require('./assets/bikeMarker.png')}
-              style={this.props.bikeMarkerStyle || {}}
+              style={this.props.bikeMarkerStyle}
             />
           )}
           coordinate={position}
@@ -82,7 +101,11 @@ export default class Amap3d extends React.Component<Amap3dProps> {
     return map(this.state.parkMarkerData, (position, index) => {
       return (
         <Marker
+          infoWindowEnabled={false}
           key={index}
+          onPress={()=>{
+            this.props.parkMarkerOnPress && this.props.parkMarkerOnPress(position, index)
+          }}
           icon={() => (
             <Image
               source={this.props.parkMarkerImg || require('./assets/parking.png')}
@@ -95,23 +118,58 @@ export default class Amap3d extends React.Component<Amap3dProps> {
     });
   }
 
-  componentDidMount() {
-    this.Amap3dInterface = new Amap3dInterface(this.mapView);
+  // 规划路径时渲染中心图标
+  renderCenterIconWhenRoute() {
+    if(!this.state.ifShowCenter){
+      return (
+        <Marker
+          icon={() => (
+            <Image
+              source={this.props.centerIconImg || require('./assets/index.png')}
+              style={this.props.parkMarkerStyle || {}}
+            />
+          )}
+          coordinate={this.centerPosition}
+        />
+      )
+    }else {
+      return null;
+    }
   }
 
   //更新用户当前位置
   updateLocation = (nativeEvent, callback) => {
     const { longitude, latitude } = nativeEvent;
-    this.myPosition = {
+    this.setState({
+      myPosition:{
+        latitude: latitude,
+        longitude: longitude
+      }
+    })
+    return this.myPosition = {
       latitude: latitude,
       longitude: longitude
     }
   }
 
-  //回到定位位置，可回调
-  restartLocation = (callback) => {
-    this.Amap3dInterface.restartLocation(this.myPosition);
-    callback && callback();
+  //地图点击去掉路径规划
+
+  componentWillReceiveProps(nextProps){
+    this.setState({
+      ifShowCenter: nextProps.ifShowCenter,
+      bikeMarkerData: nextProps.bikeMarkerData,
+      parkMarkerData: nextProps.parkMarkerData,
+      parkAreaData: nextProps.parkAreaData
+    })
+  }
+
+  //返回用户当前坐标
+  getUserLocation = () => {return this.myPosition}
+  //返回当前中心位置坐标
+  getCenterLocation = () => {return this.centerPosition};
+  //地图点击事件回调
+  mapOnPress = () => {
+    this.props.mapOnPress && this.props.mapOnPress();
   }
 
 
@@ -123,7 +181,6 @@ export default class Amap3d extends React.Component<Amap3dProps> {
   * fillColor string
   * coordinates array
   * */
-
   renderParkerArea() {
     return map(this.state.parkAreaData, (position, index) => {
       return (
@@ -139,24 +196,6 @@ export default class Amap3d extends React.Component<Amap3dProps> {
   }
 
   /**
-  * 渲染中心图标
-  * */
-  renderCenterIcon(position) {
-    return (
-      <Marker
-        title='这是一个可拖拽的标记'
-        icon={() => (
-          <Image
-            source={this.props.centerIcon || require('./assets/index.png')}
-            style={this.props.parkMarkerStyle || {}}
-          />
-        )}
-        coordinate={this.state.centerPosition}
-      />
-    )
-  }
-
-  /**
   * 渲染地图组件
   * */
   render() {
@@ -165,42 +204,37 @@ export default class Amap3d extends React.Component<Amap3dProps> {
         <MapView
           ref={ref => this.mapView = ref}
           locationEnabled
-          locationInterval={10000}
-          distanceFilter={10}
+          locationInterval={1000}
           onPress={this._logPressEvent}
           onLongPress={this._logLongPressEvent}
           onLocation={this._logLocationEvent}
-          onStatusChange={this._logStatusChangeEvent}
+          onStatusChange={this.StatusChangeEvent}
           onStatusChangeComplete={this._logStatusChangeCompleteEvent}
           zoomLevel={18}
+          coordinate={this.props.myPosition}
           style={{
             flex: 1,
             height,
             width,
             borderWidth: 1,
-            borderColor: 'black',
+            borderColor: 'white',
           }}
         >
           {this.renderBikeMaker()}
           {this.renderParkerMaker()}
           {this.renderParkerArea()}
+          {this.renderCenterIconWhenRoute()}
         </MapView>
+        {this.state.ifShowCenter ? (
+          <View style={styles.centerIconView}>
+            <Image
+              source={require('./assets/index.png')}
+            />
+          </View>
+        ) : null }
       </View>
     );
   }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'black',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    color: '#00ff00',
-    margin: 10,
-  },
-});
+
