@@ -13,7 +13,6 @@ import {
   Image,
   TouchableWithoutFeedback
 } from 'react-native';
-import Amap3dInterface from './Amap3d.interface';
 import { Mask } from 'matrix-basic-components';
 import React, { Component } from 'react';
 import styles from './Amap3d.styles'
@@ -164,7 +163,7 @@ export default class Amap3d extends React.Component<Amap3dProps> {
   }
 
   /**
-  * 地图点击去掉路径规划
+  * 地图点击去掉路径规划,更新state
   * */
   componentWillReceiveProps(nextProps){
     this.setState({
