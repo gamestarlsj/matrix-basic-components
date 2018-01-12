@@ -40,6 +40,8 @@ type Amap3dProps = {
   ifShowCenter?: Boolean,
   // 点击地图事件
   mapOnPress?: Function,
+  // 地图缩放
+  zoomLevel?: number,
 };
 
 export default class Amap3d extends React.Component<Amap3dProps> {
@@ -51,20 +53,20 @@ export default class Amap3d extends React.Component<Amap3dProps> {
       parkAreaData: this.props.parkAreaData ? this.props.parkAreaData : [],
       ifShowCenter: this.props.ifShowCenter ? this.props.ifShowCenter : true,
       myPosition: this.props.myPosition,
+      zoomLevel: this.props.zoomLevel? this.props.zoomLevel: 18,
     };
     this.myPosition = this.props.myPosition;
     this.centerPosition = this.props.myPosition;
   }
 
   _log(actionName, nativeEvent) {
-    console.log(`${actionName}: ${nativeEvent}`);
+    console.log(nativeEvent);
   }
 
-  _logPressEvent = ({nativeEvent}) => this.mapOnPress('onPress', nativeEvent)
-  _logLongPressEvent = ({nativeEvent}) => this._log('onLongPress', nativeEvent)
-  _logLocationEvent = ({nativeEvent}) => this.updateLocation(nativeEvent)
-
-  _logStatusChangeCompleteEvent = ({nativeEvent}) => {
+  PressEvent = ({nativeEvent}) => this.mapOnPress(nativeEvent)
+  LongPressEvent = ({nativeEvent}) => this._log('onLongPress', nativeEvent)
+  LocationEvent = ({nativeEvent}) => this.updateLocation(nativeEvent)
+  StatusChangeCompleteEvent = ({nativeEvent}) => {
     const { longitude, latitude } = nativeEvent;
     if(this.state.ifShowCenter){
       this.centerPosition = {
@@ -74,7 +76,9 @@ export default class Amap3d extends React.Component<Amap3dProps> {
     }
   }
 
-  //渲染自行车图标
+  /**
+   * 渲染自行车图标
+   * */
   renderBikeMaker() {
     return map(this.state.bikeMarkerData, (position, index) => {
       return (
@@ -82,7 +86,7 @@ export default class Amap3d extends React.Component<Amap3dProps> {
           key={index}
           infoWindowEnabled={false}
           onPress={()=>{
-            this.props.bikeMarkerOnPress && this.props.bikeMarkerOnPress(position, index)
+            this.props.bikeMarkerOnPress && this.props.bikeMarkerOnPress(position, 'marker')
           }}
           icon={() => (
             <Image
@@ -96,7 +100,9 @@ export default class Amap3d extends React.Component<Amap3dProps> {
     });
   }
 
-  //渲染停车区图标
+  /**
+  * 渲染停车区图标
+  * */
   renderParkerMaker() {
     return map(this.state.parkMarkerData, (position, index) => {
       return (
@@ -118,7 +124,9 @@ export default class Amap3d extends React.Component<Amap3dProps> {
     });
   }
 
-  // 规划路径时渲染中心图标
+  /**
+   * 规划路径时渲染中心图标
+   * */
   renderCenterIconWhenRoute() {
     if(!this.state.ifShowCenter){
       return (
@@ -137,9 +145,12 @@ export default class Amap3d extends React.Component<Amap3dProps> {
     }
   }
 
-  //更新用户当前位置
+  /**
+   * 更新用户当前位置
+   * */
   updateLocation = (nativeEvent, callback) => {
     const { longitude, latitude } = nativeEvent;
+    //android bug
     this.setState({
       myPosition:{
         latitude: latitude,
@@ -152,14 +163,15 @@ export default class Amap3d extends React.Component<Amap3dProps> {
     }
   }
 
-  //地图点击去掉路径规划
-
+  /**
+  * 地图点击去掉路径规划
+  * */
   componentWillReceiveProps(nextProps){
     this.setState({
       ifShowCenter: nextProps.ifShowCenter,
       bikeMarkerData: nextProps.bikeMarkerData,
       parkMarkerData: nextProps.parkMarkerData,
-      parkAreaData: nextProps.parkAreaData
+      parkAreaData: nextProps.parkAreaData,
     })
   }
 
@@ -168,8 +180,9 @@ export default class Amap3d extends React.Component<Amap3dProps> {
   //返回当前中心位置坐标
   getCenterLocation = () => {return this.centerPosition};
   //地图点击事件回调
-  mapOnPress = () => {
-    this.props.mapOnPress && this.props.mapOnPress();
+  mapOnPress = (nativeEvent) => {
+    console.log(nativeEvent)
+    this.props.mapOnPress && this.props.mapOnPress(nativeEvent ,'map');
   }
 
 
@@ -204,14 +217,15 @@ export default class Amap3d extends React.Component<Amap3dProps> {
         <MapView
           ref={ref => this.mapView = ref}
           locationEnabled
-          locationInterval={1000}
-          onPress={this._logPressEvent}
-          onLongPress={this._logLongPressEvent}
-          onLocation={this._logLocationEvent}
+          locationInterval={500}
+          onPress={this.PressEvent}
+          onLongPress={this.LongPressEvent}
+          onLocation={this.LocationEvent}
           onStatusChange={this.StatusChangeEvent}
-          onStatusChangeComplete={this._logStatusChangeCompleteEvent}
-          zoomLevel={18}
+          onStatusChangeComplete={this.StatusChangeCompleteEvent}
+          zoomLevel={this.state.zoomLevel}
           coordinate={this.props.myPosition}
+          onSearchRouteComplete={this.props.onSearchRouteComplete}
           style={{
             flex: 1,
             height,

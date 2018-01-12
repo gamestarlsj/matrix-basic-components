@@ -14,6 +14,8 @@ import SecretBikeWebView from './SecretBikeWebView';
 import KeyboardAvoidingView from './KeyboardAvoidingView';
 import CloseButton from './NavigationBarComponents/CloseButton';
 import GoBackButton from './NavigationBarComponents/goBackButton';
+import Amap3d from './Amap3d';
+import Amap3dInterface from './Amap3dInterface/Amap3d.interface'
 
 export {
   VerticalDescLabel,
@@ -31,4 +33,6 @@ export {
   KeyboardAvoidingView,
   CloseButton,
   GoBackButton,
+  Amap3d,
+  Amap3dInterface
 };
